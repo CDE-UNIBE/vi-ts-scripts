@@ -21,8 +21,8 @@
 
 #${VITS_DATA_PATH:?"Variable VITS_DATA_PATH is not set."}
 if [ ! -d "$VITS_DATA_PATH" ]; then
-    echo "Variable VITS_DATA_PATH is not a directory."
-    exit 0
+    echo "Variable VITS_DATA_PATH is not set or not a directory."
+    exit 1
 fi
 
 baseUrl="http://e4ftl01.cr.usgs.gov/MOLT"
@@ -32,7 +32,6 @@ localPath="$VITS_DATA_PATH/MODIS/MOLT"
 
 tiles="h16v08 h17v08 h18v04 h20v09 h21v07 h21v08 h21v09 h21v10 h22v07 h22v08 h22v09 h27v06 h27v07 h27v08 h28v06 h28v07 h28v08"
 
-echo "start"
 for d in `wget -q -O - "$baseUrl/$product/" | grep -o "<a\ href=\"[0-9]*\.[0-9][0-9].[0-9][0-9]\/\">" | sed 's/<a\ href=\"//g' | sed 's/\/\">//g'`
 do
     echo "Start processing timestamp $d"
