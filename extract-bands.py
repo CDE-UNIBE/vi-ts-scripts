@@ -73,7 +73,7 @@ for root, dirs, files in os.walk("%s/%s" % (inputPath, product)):
                             sys.exit(1)
                         for ds in [(0, "NDVI"), (1, "EVI"), (2, "QUAL")]:
                             subdatasetName = dataset.GetSubDatasets()[ds[0]]
-                            subdataset = gdal.Open("%s" % (subdatasetName[0]), gdalconst.GA_ReadOnly)
+                            subdataset = gdal.Open(os.path.abspath("%s") % (subdatasetName[0]), gdalconst.GA_ReadOnly)
                             inBand = subdataset.GetRasterBand(1)
                             
                             outputName = re.sub(".hdf$", ".tif", filename)
@@ -83,20 +83,16 @@ for root, dirs, files in os.walk("%s/%s" % (inputPath, product)):
                             
                             output = "%s/%s/%s/%s" % (outputPath, ds[1], tile, "%s_%s" % (ds[1], outputName))
                             if not os.path.exists(output):
-                                outDataset = tifDriver.Create(output, subdataset.RasterXSize, subdataset.RasterYSize, 1, gdalconst.GDT_Int16)
-                                #outBand.WriteArray(inBand.ReadAsArray(), 0, 0)
+                                outDataset = tifDriver.Create(os.path.abspath(output), subdataset.RasterXSize, subdataset.RasterYSize, 1, gdalconst.GDT_Int16)
                                 inRaster = inBand.ReadRaster1(0, 0, subdataset.RasterXSize, subdataset.RasterYSize)
-                                #outBand.WriteRaster(0, 0, subdataset.RasterXSize, subdataset.RasterYSize, inRaster)
-                                #outBand.FlushCache
                                 outDataset.WriteRaster(0, 0, subdataset.RasterXSize, subdataset.RasterYSize, inRaster)
                                 outDataset.FlushCache()
                                 del outDataset
                                 
                                 # Now the gdal_merge!
-                                merged_file = "%s/%s/%s/%s" % (outputPath, ds[1], tile, "%s.tif" % (ds[1]))
-                                print merged_file
+                                stackedRaster = "%s/%s/%s/%s" % (outputPath, ds[1], tile, "%s.tif" % (ds[1]))
                                 tifs = []
-                                options = ["gdal_merge", "-o", merged_file, "-of", "GTiff", "-separate", "-v"]
+                                options = ["gdal_merge.py", "-o", os.path.abspath(stackedRaster), "-of", "GTiff", "-separate"]
                                 for root, dirs, files in os.walk("%s/%s/%s" % (outputPath, ds[1], tile)):
                                     for tif in files:
                                         matchObj = re.search('.*%s.*tif$' % tile, tif)
@@ -105,10 +101,8 @@ for root, dirs, files in os.walk("%s/%s" % (inputPath, product)):
                                             
                                 tifs.sort()
                                 options.extend(tifs)
-                                
-                                print options
+                                # Call gdal_merge to stack the raster files
                                 gdal_merge.main(options)
-                                
                                 
                             del inBand
                             del subdataset                                
