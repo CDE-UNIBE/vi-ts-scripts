@@ -73,7 +73,7 @@ for root, dirs, files in os.walk("%s/%s" % (inputPath, product)):
                             sys.exit(1)
                         for ds in [(0, "NDVI"), (1, "EVI"), (2, "QUAL")]:
                             subdatasetName = dataset.GetSubDatasets()[ds[0]]
-                            subdataset = gdal.Open(os.path.abspath("%s") % (subdatasetName[0]), gdalconst.GA_ReadOnly)
+                            subdataset = gdal.Open("%s" % (subdatasetName[0]), gdalconst.GA_ReadOnly)
                             inBand = subdataset.GetRasterBand(1)
                             
                             outputName = re.sub(".hdf$", ".tif", filename)
@@ -84,6 +84,8 @@ for root, dirs, files in os.walk("%s/%s" % (inputPath, product)):
                             output = "%s/%s/%s/%s" % (outputPath, ds[1], tile, "%s_%s" % (ds[1], outputName))
                             if not os.path.exists(output):
                                 outDataset = tifDriver.Create(os.path.abspath(output), subdataset.RasterXSize, subdataset.RasterYSize, 1, gdalconst.GDT_Int16)
+                                outDataset.SetGeoTransform(subdataset.GetGeoTransform())
+                                outDataset.SetProjection(subdataset.GetProjection())
                                 inRaster = inBand.ReadRaster1(0, 0, subdataset.RasterXSize, subdataset.RasterYSize)
                                 outDataset.WriteRaster(0, 0, subdataset.RasterXSize, subdataset.RasterYSize, inRaster)
                                 outDataset.FlushCache()
@@ -91,6 +93,8 @@ for root, dirs, files in os.walk("%s/%s" % (inputPath, product)):
                                 
                                 # Now the gdal_merge!
                                 stackedRaster = "%s/%s/%s/%s" % (outputPath, ds[1], tile, "%s.tif" % (ds[1]))
+                                if os.path.exists(stackedRaster):
+                                    os.remove(stackedRaster)
                                 tifs = []
                                 options = ["gdal_merge.py", "-o", os.path.abspath(stackedRaster), "-of", "GTiff", "-separate"]
                                 for root, dirs, files in os.walk("%s/%s/%s" % (outputPath, ds[1], tile)):
