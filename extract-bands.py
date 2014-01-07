@@ -83,6 +83,9 @@ for root, dirs, files in os.walk("%s/%s" % (inputPath, product)):
                             output = "%s/%s/%s/%s" % (outputPath, index[1], tile, "%s_%s" % (index[1], outputName))
 
                             if not os.path.exists(output):
+                                # Check if the tile directory already exists
+                                if not os.path.exists("%s/%s/%s" % (outputPath, index[1], tile)):
+                                    os.mkdir("%s/%s/%s" % (outputPath, index[1], tile))
                                 # If the output file does not yet exist, open the input file
                                 dataset = gdal.Open(inputFile, gdalconst.GA_ReadOnly)
                                 # Get the subdataset name

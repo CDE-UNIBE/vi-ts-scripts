@@ -1,0 +1,3 @@
+set VITS_DATA_PATH=D:\path\to\your\data\directory
+# Set GDAL cache size in Megabytes
+set GDAL_CACHEMAX=2047
