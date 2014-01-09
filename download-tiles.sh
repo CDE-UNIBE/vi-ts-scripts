@@ -58,3 +58,5 @@ do
     # Clean up
     rm -f timeIndex
 done
+
+python /home/webuser/bin/extract-bands.py

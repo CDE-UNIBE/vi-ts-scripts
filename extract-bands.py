@@ -113,21 +113,32 @@ for root, dirs, files in os.walk("%s/%s" % (inputPath, product)):
                                 # Write a nice message for the user
                                 print "File \"%s\" successfully written" % os.path.abspath(output)
 
-                                # Now the gdal_merge:
-                                # Delete the stacked raster file if that exists already
-                                stackedRaster = "%s/%s/%s/%s" % (outputPath, index[1], tile, "%s.tif" % (index[1]))
-                                if os.path.exists(stackedRaster):
-                                    os.remove(stackedRaster)
-                                tifs = []
-                                # Put the command line options to a Python list
-                                options = ["gdal_merge.py", "-o", os.path.abspath(stackedRaster), "-of", "GTiff", "-separate"]
-                                for root, dirs, files in os.walk("%s/%s/%s" % (outputPath, index[1], tile)):
-                                    for tif in files:
-                                        matchObj = re.search('.*%s.*tif$' % tile, tif)
-                                        if matchObj is not None:
-                                            tifs.append("%s/%s/%s/%s" % (outputPath, index[1], tile, matchObj.group(0)))
-                                # Sort the raster files according to their file name
-                                tifs.sort()
-                                options.extend(tifs)
-                                # Call gdal_merge to stack the raster files
-                                gdal_merge.main(options)
+                                # Now the gdal_merge in case we handle NDVI
+                                if index[0] == 0:
+                                    # Delete the stacked raster file if that exists already
+                                    stackedRaster = "%s/%s/%s/%s" % (outputPath, index[1], tile, "%s.tif" % (index[1]))
+                                    if os.path.exists(stackedRaster):
+                                        os.remove(stackedRaster)
+                                    tifs = []
+                                    # Put the command line options to a Python list
+                                    options = ["gdal_merge.py", "-o", os.path.abspath(stackedRaster), "-of", "GTiff", "-separate"]
+                                    for root, dirs, files in os.walk("%s/%s/%s" % (outputPath, index[1], tile)):
+                                        for tif in files:
+                                            matchObj = re.search('.*%s.*tif$' % tile, tif)
+                                            if matchObj is not None:
+                                                tifs.append("%s/%s/%s/%s" % (outputPath, index[1], tile, matchObj.group(0)))
+                                    # Sort the raster files according to their file name
+                                    tifs.sort()
+                                    options.extend(tifs)
+                                    # Call gdal_merge to stack the raster files
+                                    gdal_merge.main(options)
+
+                        # Delete the input file
+                        sys.stdout.write("File to delete %s\n" % inputFile)
+                        os.remove(inputFile)
+                        # Create a replacement file with an empty content
+                        dummy = open(inputFile, "w+")
+                        # Write an empty string to the file
+                        dummy.write("")
+                        # Close the dummy file again
+                        dummy.close()
