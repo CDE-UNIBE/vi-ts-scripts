@@ -35,6 +35,11 @@ except ImportError:
 import gdal_merge
 
 def merge_files(outputPath, index, tile):
+    """
+    This is basically a wrapper around gdal_merge.py which is executed as a
+    Python module.
+    """
+
     # Delete the stacked raster file if that exists already
     stackedRaster = "%s/%s/%s/%s" % (outputPath, index, tile, "%s.tif" % (index))
     if os.path.exists(stackedRaster):
@@ -79,7 +84,7 @@ def extract_band(inputFile, outputFile, index):
                                   subdataset.RasterYSize,
                                   1,
                                   gdalconst.GDT_Int16,
-                                  options = ['COMPRESS=LZW', 'PREDICTOR=2', 'TILED=YES', 'INTERLEAVE=BAND'])
+                                  options = ['COMPRESS=LZW', 'PREDICTOR=2'])
     # Set the transformation and projection from the subdataset
     outDataset.SetGeoTransform(subdataset.GetGeoTransform())
     outDataset.SetProjection(subdataset.GetProjection())
@@ -115,9 +120,9 @@ def main(inputFile, tile):
         inputFileName = re.search("MOD13Q1\.[A-Za-z0-9\.]*\.hdf$", inputFile).group(0)
         outputName = re.sub(".hdf$", ".tif", inputFileName)
         outputFile = "%s/%s/%s/%s" % (outputPath, index[1], tile, "%s_%s" % (index[1], outputName))
-        sys.stdout.write("%s\n" % outputFile)
 
         if not os.path.exists(outputFile):
+            sys.stdout.write("Processing file: \"%s\"\n" % outputFile)
             # Check if the tile directory already exists
             if not os.path.exists("%s/%s/%s" % (outputPath, index[1], tile)):
                 os.mkdir("%s/%s/%s" % (outputPath, index[1], tile))
