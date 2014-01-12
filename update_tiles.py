@@ -42,11 +42,9 @@ remote_base_url = "http://e4ftl01.cr.usgs.gov/MOLT/%s" % product
 local_base_path = "%s/MODIS/MOLT/%s" % (os.environ['VITS_DATA_PATH'], product)
 
 # List of MODIS tiles that will be downloaded
-#tiles = ["h16v08", "h17v08", "h18v04", "h20v09", "h21v07", "h21v08", "h21v09",
-#"h21v10", "h22v07", "h22v08", "h22v09", "h27v06", "h27v07", "h27v08", "h28v06",
-#"h28v07", "h28v08"]
-
-tiles = ["h16v08"]
+tiles = ["h16v08", "h17v08", "h18v04", "h20v09", "h21v07", "h21v08", "h21v09",
+"h21v10", "h22v07", "h22v08", "h22v09", "h27v06", "h27v07", "h27v08", "h28v06",
+"h28v07", "h28v08"]
 
 # Read the remote main page to get a list of all available timestamps
 mainpage = urlopen(remote_base_url)
