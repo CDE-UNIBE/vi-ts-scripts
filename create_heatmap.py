@@ -5,6 +5,8 @@
 
 import sys
 
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import os
 import osgeo.ogr
@@ -87,20 +89,34 @@ def main(argv=None):
     # Create the heatmap
     ax.imshow(rows, extent=[xmin, xmax, ymin, ymax], interpolation='bilinear')
 
-    # Write the image to a TIFF file
-    plt.savefig(outputFile)
+    # Write the image to a PNG file
+    tmpFile = "%s.png" % outputFile.rsplit(".", 1)[0]
+    plt.savefig(tmpFile)
+
+
+    pngDriver = gdal.GetDriverByName("PNG")
+    pngDriver.Register()
+
+    inDataset = gdal.Open(tmpFile, gdalconst.GA_ReadOnly)
 
     # Open the TIFF file and append the georeference
     tifDriver = gdal.GetDriverByName("GTiff")
     tifDriver.Register()
 
-    dataset = gdal.Open(outputFile, gdalconst.GA_Update)
+    # Create the output dataset:
+    # Like the input subdataset the output dataset needs to be 16bit Signed Integer.
+    # The output size is the same as the input size
+    tifDriver.CreateCopy(outputFile, inDataset, 1, ["COMPRESS=LZW", "PREDICTOR=2"])
+
+    outDataset = gdal.Open(outputFile, gdalconst.GA_Update)
     psx = (xmax - xmin) / outputWidth
     ulx = xmin
     psy = (ymin - ymax) / (outputWidth / 2)
     uly = ymax
-    dataset.SetGeoTransform([ ulx, psx, 0, uly, 0, psy ])
-    dataset.SetProjection(osr.SRS_WKT_WGS84)
+    outDataset.SetGeoTransform([ ulx, psx, 0, uly, 0, psy ])
+    outDataset.SetProjection(osr.SRS_WKT_WGS84)
+
+    os.remove(tmpFile)
 
 if __name__ == '__main__':
     sys.exit(main())
