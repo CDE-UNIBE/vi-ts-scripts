@@ -54,6 +54,10 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv
 
+    if len(argv) != 3:
+        sys.stderr.write("Usage: %s src_ogr dst_gdal\n" % argv[0])
+        sys.exit(1)
+
     # The file output name
     outputFile = os.path.abspath(argv[2])
     if not outputFile.endswith(".tif"):
@@ -147,6 +151,7 @@ def main(argv=None):
     # Set the projection transformation
     outDataset.SetProjection(osr.SRS_WKT_WGS84)
 
+    # Remove the temporary PNG file
     os.remove(tmpFile)
 
 if __name__ == '__main__':
