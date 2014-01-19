@@ -66,14 +66,15 @@ def main(argv=None):
     # The file output width
     outputWidth = 4000
 
-    # get the shape file driver
+    # Get the virtual format driver
     vrtDriver = ogr.GetDriverByName('VRT')
 
-    # Open shape file with points
+    # Open the virtual format file
     vrtFile = os.path.abspath(argv[1])
     dataSource = vrtDriver.Open(vrtFile, 0)
     if dataSource is None:
-        print 'Could not open file ' + vrtFile
+        sys.stderr.write("Could not open file %s\n" % vrtFile)
+        # Exit the script if the input file is not readable
         sys.exit(1)
     # Get the layer
     layer = dataSource.GetLayer()
@@ -85,8 +86,8 @@ def main(argv=None):
     ymax = 90.0
 
     # Number of columns and rows
-    nbrColumns = 200.0
-    nbrRows = 100.0
+    nbrColumns = 360.0
+    nbrRows = 180.0
 
     # Caculate the cell size in x and y direction
     csx = (xmax - xmin) / nbrColumns
