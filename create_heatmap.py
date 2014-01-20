@@ -118,7 +118,7 @@ def main(argv=None):
     fig.add_axes(ax)
 
     # Create the heatmap
-    ax.imshow(rows, extent=[xmin, xmax, ymin, ymax], interpolation='bilinear')
+    ax.imshow(rows, extent=[xmin, xmax, ymin, ymax], interpolation='nearest')
 
     # Write the image to a temporary PNG file.
     # This intermediate step is necessary since the AGG backend renderer does
