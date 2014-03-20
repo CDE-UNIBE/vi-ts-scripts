@@ -129,8 +129,8 @@ def main(inputFile, tile):
 
             extract_band(inputFile, outputFile, index[0])
 
-            # Now the gdal_merge in case we handle NDVI
-            if index[0] == 0:
+            # Now the gdal_merge in case we handle NDVI or QUAL
+            if index[0] == 0 or index[0] == 2:
                 merge_files(outputPath, index[1], tile)
 
     return True
