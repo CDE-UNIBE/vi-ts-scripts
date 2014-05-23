@@ -3,3 +3,4 @@ setenv.sh
 setenv.bat
 
 cleanup.sh
+*.ini
