@@ -128,8 +128,8 @@ def main(argv=None):
         #log.debug(result)
 
         # Loop over each pixel
-        for row in range(0, 256):
-            for col in range((nbrOfCols-256), nbrOfCols):
+        for row in range(0, nbrOfRows):
+            for col in range(0, nbrOfCols):
                 # Get the time series for the current pixel
                 
                 time_array = get_time_array(ds, col, row)
