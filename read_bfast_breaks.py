@@ -416,8 +416,8 @@ def write_to_raster(tile, index, pixel, size, projection, geotransform):
     driver = gdal.GetDriverByName("GTiff")
     driver.Register()
     
-    if os.path.exists(name):
-        dataset = gdal.Open(filename, gdalconst.GF_Write)
+    if os.path.exists(filename):
+        dataset = gdal.Open(filename, gdalconst.GA_Update)
         band = dataset.GetRasterBand(1)
     else:
         dataset = driver.Create(filename, size[0], size[1], 1, gdalconst.GDT_Byte, ['COMPRESS=LZW', 'PREDICTOR=2'])
