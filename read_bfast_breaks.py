@@ -498,8 +498,8 @@ def main(argv=None):
     driver.Register()
     
     # Process MODIS tiles
-    for tile in ["h27v06"]:
-    #for tile in ["h27v06", "h27v07", "h28v07"]:
+    #for tile in ["h27v06"]:
+    for tile in ["h27v06", "h27v07", "h28v07"]:
         
         # Check if VITS_DATA_PATH is set as environment variable
         if "VITS_DATA_PATH" not in os.environ:
@@ -548,23 +548,22 @@ def main(argv=None):
                 
                 # Check the mask raster if not NODATA:
                 value = float(mask_pixel[col, row])
-                if value == mask_NODATA:
-                    break
+                if value != mask_NODATA:
                 
-                # Get the time series for the current pixel
-                log.debug("Accessing pixel x: %s, y: %s" % (col, row))
-                time_array = get_time_array(ds, col, row)
-                log.debug(time_array)
-                # Calculate the BFast breakpoints
-                breakpoints = calc_bfast(time_array)
-                log.debug(breakpoints)
-                # Variable "breakpoints" is an array with length greater than 0
-                # if there are any breaks. If no breaks are found the array has
-                # no elements.
-                if len(breakpoints) > 0:
-                    # Write a pixel for each found element
-                    for b in breakpoints:
-                        write_to_raster(tile, b, (col, row), (nbrOfCols, nbrOfRows), proj, trans)
+                    # Get the time series for the current pixel
+                    log.debug("Accessing pixel x: %s, y: %s" % (col, row))
+                    time_array = get_time_array(ds, col, row)
+                    log.debug(time_array)
+                    # Calculate the BFast breakpoints
+                    breakpoints = calc_bfast(time_array)
+                    log.debug(breakpoints)
+                    # Variable "breakpoints" is an array with length greater than 0
+                    # if there are any breaks. If no breaks are found the array has
+                    # no elements.
+                    if len(breakpoints) > 0:
+                        # Write a pixel for each found element
+                        for b in breakpoints:
+                            write_to_raster(tile, b, (col, row), (nbrOfCols, nbrOfRows), proj, trans)
                     
 if __name__ == "__main__":
     sys.exit(main())
