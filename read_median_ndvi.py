@@ -35,58 +35,11 @@ try:
     import gdalconst
 except ImportError:
     import osgeo.gdalconst as gdalconst
+from processing.utilities import get_time_array
+from processing.utilities import write_to_gtiff
 
 # Variable log needs to be global
 log = None
-
-def get_time_array(dataset, x, y):
-    """
-    Extract a time series Python array from NDVI imagery at the requested pixel
-    position.
-    """
-    
-    result = []
-
-    bands = dataset.RasterCount
-
-    # loop through the bands
-    for j in range(bands):
-        band = dataset.GetRasterBand(j + 1) # 1-based index
-
-        # read data and add the value to the string
-        data = band.ReadAsArray(x, y, 1, 1)
-        value = float(data[0, 0])
-        result.append(value)
-
-    # figure out how long the script took to run
-    #log.debug('It took ' + str(endTime - startTime) + ' seconds to read the input raster file.')
-
-    return result
-
-def write_to_raster(tile, pixel, size, value, projection, geotransform):
-    """
-    Write a positive value in the MEDIAN image at the pixel position.
-    """
-    
-    # Check if the output image already exists:
-    filename = "%s/MODIS/processed/MEDIAN/%s/MEDIAN_MOD13Q1.%s.tif" % (os.environ['VITS_DATA_PATH'], tile, tile)
-    
-    log.debug("Selecting file \"%s\"" % filename)
-    
-    driver = gdal.GetDriverByName("GTiff")
-    driver.Register()
-    
-    if os.path.exists(filename):
-        dataset = gdal.Open(filename, gdalconst.GA_Update)
-        band = dataset.GetRasterBand(1)
-    else:
-        dataset = driver.Create(filename, size[0], size[1], 1, gdalconst.GDT_Int16, ['COMPRESS=LZW', 'PREDICTOR=2'])
-        dataset.SetProjection(projection)
-        dataset.SetGeoTransform(geotransform)
-        band = dataset.GetRasterBand(1)
-    
-    band.WriteArray(numpy.array([[value]]), pixel[0], pixel[1])
-    band.FlushCache()
     
 def main(argv=None):
     if argv is None:
@@ -103,11 +56,12 @@ def main(argv=None):
     
     # Process MODIS tiles
     for tile in ["h16v08"]:
-
-        # Open the image
+        
+        # Check if VITS_DATA_PATH is set as environment variable
         if "VITS_DATA_PATH" not in os.environ:
             log.error('"VITS_DATA_PATH" is not set in the environment.')
             sys.exit(1)
+        # Open the image
         filename = '%s/MODIS/processed/NDVI/%s/NDVI.tif' % (os.environ['VITS_DATA_PATH'], tile)
         # Open the NDVI file for reading
         ds = gdal.Open(filename, gdalconst.GA_ReadOnly)
@@ -130,14 +84,14 @@ def main(argv=None):
         # Loop over each pixel
         for row in range(0, nbrOfRows):
             for col in range(0, nbrOfCols):
+                starttime = time.time()
                 # Get the time series for the current pixel
-                
                 time_array = get_time_array(ds, col, row)
-                #log.debug(time_array)
-                arr = numpy.array(time_array)
-                median = numpy.median(arr)
-                log.debug("Median at pixel x: %s, y: %s is %s" % (col, row, median))
-                write_to_raster(tile, (col, row), (nbrOfCols, nbrOfRows), median, proj, trans)
+                filename = "%s/MODIS/processed/MEDIAN/%s/MEDIAN_MOD13Q1.%s.tif" % (os.environ['VITS_DATA_PATH'], tile, tile)
+                #log.debug("Selecting file \"%s\"" % filename)
+                write_to_gtiff(filename, int(numpy.median(time_array)), (col, row), (nbrOfCols, nbrOfRows), proj, trans, gdalconst.GDT_Int16)
+                endtime = time.time()
+                log.debug("It took %s" % (endtime - starttime))
                     
 if __name__ == "__main__":
     sys.exit(main())

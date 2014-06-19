@@ -38,6 +38,8 @@ except ImportError:
 import rpy2.rinterface as rinterface
 import rpy2.robjects as robjects
 from rpy2.robjects.packages import importr
+from processing.utilities import get_time_array
+from processing.utilities import write_to_gtiff
 
 # Variable log needs to be global
 log = None
@@ -371,77 +373,16 @@ def list_of_images():
     "A2014065",
     "A2014081",
     "A2014097",
-    "A2014113"]
+    "A2014113",
+    "A2014129",
+    "A2014145"]
     
     return images
-    
-def get_time_array(dataset, x, y):
-    """
-    Extract a time series Python array from NDVI imagery at the requested pixel
-    position.
-    """
-    
-    result = []
-
-    bands = dataset.RasterCount
-
-    # loop through the bands
-    for j in range(bands):
-        band = dataset.GetRasterBand(j + 1) # 1-based index
-
-        # read data and add the value to the string
-        data = band.ReadAsArray(x, y, 1, 1)
-        value = float(data[0, 0])
-        result.append(value / 10000.0)
-
-    # figure out how long the script took to run
-    #log.debug('It took ' + str(endTime - startTime) + ' seconds to read the input raster file.')
-
-    return result
-
-def write_to_raster(tile, index, pixel, size, projection, geotransform):
-    """
-    Write a positive value in the BREAK image at the pixel position.
-    """
-    
-    
-    # Be careful: R indexes are zero-based!
-    name = list_of_images()[index-1]
-    
-    # Check if the output image already exists:
-    filename = "%s/MODIS/processed/BREAK/%s/BREAK_MOD13Q1.%s.%s.tif" % (os.environ['VITS_DATA_PATH'], tile, name, tile)
-    
-    log.debug("Selecting file \"%s\"" % filename)
-    
-    driver = gdal.GetDriverByName("GTiff")
-    driver.Register()
-    
-    if os.path.exists(filename):
-        dataset = gdal.Open(filename, gdalconst.GA_Update)
-        band = dataset.GetRasterBand(1)
-    else:
-        dataset = driver.Create(filename, size[0], size[1], 1, gdalconst.GDT_Byte, ['COMPRESS=LZW', 'PREDICTOR=2'])
-        dataset.SetProjection(projection)
-        dataset.SetGeoTransform(geotransform)
-        band = dataset.GetRasterBand(1)
-    
-    band.WriteArray(numpy.array([[1]]), pixel[0], pixel[1])
-    band.FlushCache()
     
 def calc_bfast(data_array):
     """
     Calculate the BFast statistics
     """
-    
-    def _is_in_sea(arr):
-        for i in arr:
-            if i != float(-0.3):
-                return False
-        return True
-
-
-    if _is_in_sea(data_array):
-        return []
 
     # Start R timing
     startTime = time.time()
@@ -487,7 +428,8 @@ def calc_bfast(data_array):
 def main(argv=None):
     if argv is None:
         argv = sys.argv
-        
+    
+    # Get the logging configuration file
     logging.config.fileConfig(argv[0].replace("py", "ini"))
     # Get the root logger from the config file
     global log
@@ -498,8 +440,7 @@ def main(argv=None):
     driver.Register()
     
     # Process MODIS tiles
-    #for tile in ["h27v06"]:
-    for tile in ["h27v06", "h27v07", "h28v07"]:
+    for tile in ["h27v06"]:
         
         # Check if VITS_DATA_PATH is set as environment variable
         if "VITS_DATA_PATH" not in os.environ:
@@ -519,7 +460,7 @@ def main(argv=None):
         # Get the NODATA value for the mask
         mask_NODATA = mask_band.GetNoDataValue()
         
-        # Open the image
+        # Open the stacked NDVI image
         filename = '%s/MODIS/processed/NDVI/%s/NDVI.tif' % (os.environ['VITS_DATA_PATH'], tile)
         # Open the NDVI file for reading
         ds = gdal.Open(filename, gdalconst.GA_ReadOnly)
@@ -541,29 +482,49 @@ def main(argv=None):
         
         # Read the whole mask file into an array to save file access
         mask_pixel = mask_band.ReadAsArray(0, 0, nbrOfCols, nbrOfRows)
-
+        
         # Loop over each pixel
         for row in range(0, nbrOfRows):
             for col in range(0, nbrOfCols):
-                
                 # Check the mask raster if not NODATA:
-                value = float(mask_pixel[col, row])
+                # Be careful! In numpy.array the first index are the row, the 
+                # second is the column
+                value = float(mask_pixel[row][col])
                 if value != mask_NODATA:
-                
+
+                    # Start timing
+                    starttime = time.time()
+
                     # Get the time series for the current pixel
                     log.debug("Accessing pixel x: %s, y: %s" % (col, row))
+                    # Get the time array at the specified position
                     time_array = get_time_array(ds, col, row)
-                    log.debug(time_array)
                     # Calculate the BFast breakpoints
-                    breakpoints = calc_bfast(time_array)
-                    log.debug(breakpoints)
+                    breakpoints = calc_bfast(time_array / 10000.0)
+                    # Log out the breakpoints
+                    log.debug("Breakpoints: %s" % breakpoints)
+                    
                     # Variable "breakpoints" is an array with length greater than 0
                     # if there are any breaks. If no breaks are found the array has
                     # no elements.
                     if len(breakpoints) > 0:
                         # Write a pixel for each found element
-                        for b in breakpoints:
-                            write_to_raster(tile, b, (col, row), (nbrOfCols, nbrOfRows), proj, trans)
+                        for breakpoint in breakpoints:
+                            
+                            # Be careful: R indexes are 1-based!
+                            name = list_of_images()[breakpoint-1]
+
+                            # Setup the output file name based on the VITS_DATA_PATH,
+                            # the tile name and the date name
+                            filename = "%s/MODIS/processed/BREAK/%s/BREAK_MOD13Q1.%s.%s.tif" % (os.environ['VITS_DATA_PATH'], tile, name, tile)
+                            log.debug("Selecting file \"%s\"" % filename)
+                            # Write a pixel with value 1 to the specified position
+                            write_to_gtiff(filename, 1, (col, row), (nbrOfCols, nbrOfRows), proj, trans)
+                    
+                    # Finish timing
+                    endtime = time.time()
+                    # Log timing to process on pixel
+                    log.debug("It took %s" % (endtime - starttime))
                     
 if __name__ == "__main__":
     sys.exit(main())
